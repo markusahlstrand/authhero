@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Context, Hono } from "hono";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { mintScimToken } from "../../src/helpers/scim/mint-token";
+import { logMessage } from "../../src/helpers/logging";
 import { Bindings, Variables } from "../../src/types";
 
 const TENANT = "tenantId";
@@ -208,4 +209,174 @@ describe("ctx.var.data", () => {
     // The runtime's env object itself is never mutated.
     expect(env.data).toBe(raw);
   });
+});
+
+type Env = { Bindings: Bindings; Variables: Variables };
+
+// A raw adapter that an earlier middleware (e.g. multi-tenancy database
+// isolation) installs as this request's base, with `tenants.get` spied so a
+// read through the composed stack shows which adapter it reached.
+function baseAdapter(raw: DataAdapters) {
+  const get = vi.fn(raw.tenants.get);
+  return { base: { ...raw, tenants: { ...raw.tenants, get } }, get };
+}
+
+function mountWithBase(subApp: Hono<Env>, base: DataAdapters) {
+  const app = new Hono<Env>();
+  app.use("*", async (ctx, next) => {
+    ctx.set("baseData", base);
+    await next();
+  });
+  app.route("/", subApp);
+  return app;
+}
+
+function baseProbe(base: DataAdapters) {
+  return async (ctx: Ctx) => {
+    await ctx.var.data.tenants.get(TENANT);
+    return ctx.json({
+      isBase: ctx.var.data === base,
+      sameAsEnv: ctx.var.data === ctx.env.data,
+    });
+  };
+}
+
+describe("ctx.var.baseData", () => {
+  const groups: {
+    name: string;
+    app: "oauthApp" | "universalApp" | "u2App" | "samlApp" | "managementApp";
+    method: "GET" | "PUT";
+  }[] = [
+    { name: "auth-api", app: "oauthApp", method: "GET" },
+    { name: "universal-login", app: "universalApp", method: "GET" },
+    // u2's `/:screen{.+}` catch-all owns every GET and POST path.
+    { name: "u2", app: "u2App", method: "PUT" },
+    { name: "saml", app: "samlApp", method: "GET" },
+    { name: "management-api", app: "managementApp", method: "GET" },
+  ];
+
+  for (const group of groups) {
+    it(`is the adapter ${group.name} composes on`, async () => {
+      const server = await getTestServer({ entityHooks: {} });
+      const subApp = server[group.app];
+      const raw = server.env.data;
+      const { base, get } = baseAdapter(raw);
+      subApp.on(group.method, PROBE, baseProbe(base));
+
+      const res = await mountWithBase(subApp, base).request(
+        PROBE,
+        { method: group.method, headers: { "tenant-id": TENANT } },
+        server.env,
+      );
+
+      // Composed on top of the base, not the base itself and not the startup
+      // adapter: the read reached the base's spy.
+      expect(await res.json()).toEqual({ isBase: false, sameAsEnv: true });
+      expect(get).toHaveBeenCalledWith(TENANT);
+      expect(server.env.data).toBe(raw);
+    });
+  }
+
+  it("is the adapter scim composes on", async () => {
+    const server = await getTestServer();
+    const { scimApp, env } = server;
+    const { scimConfigurations, scimTokens } = env.data;
+    if (!scimApp || !scimConfigurations || !scimTokens) {
+      throw new Error("SCIM adapters not wired in test server");
+    }
+    const raw = env.data;
+    const { base, get } = baseAdapter(raw);
+
+    const connection = await raw.connections.create(TENANT, {
+      name: "okta-ent",
+      strategy: "oidc",
+      options: {},
+    });
+    const connectionId = connection.id;
+    if (!connectionId) throw new Error("connection has no id");
+    await scimConfigurations.create(TENANT, {
+      connection_id: connectionId,
+      user_id_attribute: "externalId",
+      mapping: [],
+    });
+    const minted = await mintScimToken();
+    await scimTokens.create(TENANT, {
+      token_id: minted.token_id,
+      connection_id: connectionId,
+      token_hash: minted.token_hash,
+      scopes: [],
+    });
+
+    scimApp.get(PROBE, baseProbe(base));
+    const app = new Hono<Env>();
+    app.use("*", async (ctx, next) => {
+      ctx.set("baseData", base);
+      await next();
+    });
+    // scimAuthMiddleware reads `connection_id` from the mount path.
+    app.route("/scim/v2/connections/:connection_id", scimApp);
+
+    const res = await app.request(
+      `/scim/v2/connections/${connectionId}${PROBE}`,
+      {
+        headers: {
+          "tenant-id": TENANT,
+          authorization: `Bearer ${minted.token}`,
+        },
+      },
+      env,
+    );
+
+    expect(await res.json()).toEqual({ isBase: false, sameAsEnv: true });
+    expect(get).toHaveBeenCalledWith(TENANT);
+    expect(env.data).toBe(raw);
+  });
+
+  for (const group of groups) {
+    it(`drains the ${group.name} outbox and writes logs through the base`, async () => {
+      const configClaim = vi.fn();
+      const configLogsCreate = vi.fn();
+      const server = await getTestServer({
+        outbox: true,
+        wrapDataAdapter: (data) => {
+          if (!data.outbox) throw new Error("outbox adapter not wired");
+          return {
+            ...data,
+            outbox: { ...data.outbox, claimEvents: configClaim },
+            logs: { ...data.logs, create: configLogsCreate },
+          };
+        },
+      });
+      const raw = server.env.data;
+      if (!raw.outbox) throw new Error("outbox adapter not wired");
+      const baseClaim = vi.fn(raw.outbox.claimEvents);
+      const baseLogsCreate = vi.fn(raw.logs.create);
+      const base: DataAdapters = {
+        ...raw,
+        outbox: { ...raw.outbox, claimEvents: baseClaim },
+        logs: { ...raw.logs, create: baseLogsCreate },
+      };
+
+      const subApp = server[group.app];
+      subApp.on(group.method, PROBE, async (ctx) => {
+        await logMessage(ctx, TENANT, { type: "s", description: "probe" });
+        return ctx.text("ok");
+      });
+
+      const res = await mountWithBase(subApp, base).request(
+        PROBE,
+        { method: group.method, headers: { "tenant-id": TENANT } },
+        server.env,
+      );
+
+      expect(res.status).toBe(200);
+      expect(baseClaim).toHaveBeenCalledTimes(1);
+      expect(baseLogsCreate).toHaveBeenCalledWith(
+        TENANT,
+        expect.objectContaining({ description: "probe" }),
+      );
+      expect(configClaim).not.toHaveBeenCalled();
+      expect(configLogsCreate).not.toHaveBeenCalled();
+    });
+  }
 });

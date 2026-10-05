@@ -1,6 +1,7 @@
 import { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { DataAdapters } from "authhero";
+import { getRequestData } from "./request-data";
 
 /**
  * Bindings for the protect system middleware
@@ -14,6 +15,7 @@ interface ProtectSystemBindings {
  */
 interface ProtectSystemVariables {
   tenant_id?: string;
+  data?: DataAdapters;
 }
 
 /**
@@ -151,7 +153,11 @@ export function createProtectSyncedMiddleware(): MiddlewareHandler<{
       return next();
     }
 
-    const isSystem = await isSystemEntity(ctx.env.data, tenantId, entityInfo);
+    const isSystem = await isSystemEntity(
+      getRequestData(ctx),
+      tenantId,
+      entityInfo,
+    );
     if (isSystem) {
       throw new HTTPException(403, {
         message: `This ${getEntityTypeName(entityInfo.type)} is a system resource and cannot be modified. Make changes in the control plane instead.`,

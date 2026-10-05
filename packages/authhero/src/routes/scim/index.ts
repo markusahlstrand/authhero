@@ -10,7 +10,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { setRequestData } from "../../helpers/request-data";
+import { getBaseData, setRequestData } from "../../helpers/request-data";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -513,16 +513,19 @@ export function createScimApi(config: AuthHeroConfig) {
   app.use(serverTimingMiddleware);
   app.use(
     outboxMiddleware({
-      getOutbox: () => config.dataAdapter.outbox,
-      getDestinations: () => [
-        new LogsDestination(config.dataAdapter.logs),
-        ...(config.dataAdapter.logStreams
-          ? [new LogStreamDestination(config.dataAdapter.logStreams)]
-          : []),
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
-      ],
+      getOutbox: (ctx) => getBaseData(ctx, config.dataAdapter).outbox,
+      getDestinations: (ctx) => {
+        const base = getBaseData(ctx, config.dataAdapter);
+        return [
+          new LogsDestination(base.logs),
+          ...(base.logStreams
+            ? [new LogStreamDestination(base.logStreams)]
+            : []),
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
+            : []),
+        ];
+      },
     }),
   );
   app.use(async (ctx, next) => {
@@ -535,7 +538,7 @@ export function createScimApi(config: AuthHeroConfig) {
       });
     const data = composeAuthData({
       ctx,
-      rawData: config.dataAdapter,
+      rawData: getBaseData(ctx, config.dataAdapter),
       cacheAdapter,
       defaultTtl: config.dataAdapter.cache ? 300 : 0,
       nonBundleEntities: ["clients", "forms"],

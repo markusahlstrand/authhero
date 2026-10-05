@@ -37,7 +37,10 @@ export default [
     // so per-request state written to it leaks between requests (#140). Put
     // it on a context variable instead; the adapter stack goes through
     // `setRequestData`. These two files are the only sanctioned writers.
-    files: ["packages/authhero/src/**/*.{ts,tsx}"],
+    files: [
+      "packages/authhero/src/**/*.{ts,tsx}",
+      "packages/multi-tenancy/src/**/*.{ts,tsx}",
+    ],
     ignores: [
       "packages/authhero/src/helpers/request-data.ts",
       "packages/authhero/src/middlewares/apply-config.ts",

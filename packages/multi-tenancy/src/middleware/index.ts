@@ -7,6 +7,7 @@ import {
   MultiTenancyConfig,
 } from "../types";
 import { validateTenantAccess } from "../hooks/access-control";
+import { getRequestData } from "./request-data";
 
 /**
  * Creates middleware that resolves tenant_id from org_name for control plane users.
@@ -209,7 +210,7 @@ export function createSubdomainMiddleware(
       // Look up organization on the control plane with matching ID
       if (config.accessControl) {
         try {
-          const org = await ctx.env.data.organizations.get(
+          const org = await getRequestData(ctx).organizations.get(
             config.accessControl.controlPlaneTenantId,
             subdomain,
           );
@@ -262,8 +263,12 @@ export function createDatabaseMiddleware(
 
     try {
       const adapters = await config.databaseIsolation.getAdapters(tenantId);
-      // Replace the data adapters in the environment
-      ctx.env.data = adapters;
+      // authhero composes its per-request stack on top of `baseData`, and
+      // routes that never compose read `env.data`. `env` can be the object
+      // the runtime shares across requests, so it is copied, never written.
+      ctx.set("baseData", adapters);
+      // eslint-disable-next-line no-restricted-syntax
+      ctx.env = { ...ctx.env, data: adapters };
     } catch (error) {
       console.error(
         `Failed to resolve database for tenant ${tenantId}:`,

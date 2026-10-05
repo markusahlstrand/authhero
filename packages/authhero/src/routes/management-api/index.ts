@@ -38,7 +38,7 @@ import {
   serverTimingMiddleware,
 } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { setRequestData } from "../../helpers/request-data";
+import { getBaseData, setRequestData } from "../../helpers/request-data";
 import {
   ensureMutableResponse,
   isWebSocketUpgrade,
@@ -391,44 +391,47 @@ export default function create(config: AuthHeroConfig) {
 
   app.use(
     outboxMiddleware({
-      getOutbox: () => managementAdapter.outbox,
-      getDestinations: (ctx) => [
-        new LogsDestination(managementAdapter.logs),
-        ...(managementAdapter.logStreams
-          ? [new LogStreamDestination(managementAdapter.logStreams)]
-          : []),
-        new WebhookDestination(managementAdapter.hooks, async (tenantId) => {
-          const token = await createServiceToken(ctx, tenantId, "webhook");
-          return token.access_token;
-        }),
-        new CodeHookDestination(managementAdapter, ctx.env.codeExecutor, {
-          logCapture: ctx.env.actionExecutionLogs,
-        }),
-        ...(config.controlPlaneSync
-          ? [
-              new ControlPlaneSyncDestination({
-                baseUrl: config.controlPlaneSync.baseUrl,
-                timeoutMs: config.controlPlaneSync.timeoutMs,
-                getServiceToken: async (tenantId, scope) => {
-                  const token = await createServiceToken(
-                    ctx,
-                    tenantId,
-                    scope ?? "controlplane:sync",
-                  );
-                  return token.access_token;
-                },
-              }),
-            ]
-          : []),
-        // Must come after delivery destinations so the flag only flips when
-        // the upstream hook destinations actually succeeded.
-        new RegistrationFinalizerDestination(managementAdapter.users),
-        // Archive last: the relay stops the destination loop on first failure,
-        // so a Pipelines outage must not be able to block real delivery.
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
-      ],
+      getOutbox: (ctx) => getBaseData(ctx, managementAdapter).outbox,
+      getDestinations: (ctx) => {
+        const base = getBaseData(ctx, managementAdapter);
+        return [
+          new LogsDestination(base.logs),
+          ...(base.logStreams
+            ? [new LogStreamDestination(base.logStreams)]
+            : []),
+          new WebhookDestination(base.hooks, async (tenantId) => {
+            const token = await createServiceToken(ctx, tenantId, "webhook");
+            return token.access_token;
+          }),
+          new CodeHookDestination(base, ctx.env.codeExecutor, {
+            logCapture: ctx.env.actionExecutionLogs,
+          }),
+          ...(config.controlPlaneSync
+            ? [
+                new ControlPlaneSyncDestination({
+                  baseUrl: config.controlPlaneSync.baseUrl,
+                  timeoutMs: config.controlPlaneSync.timeoutMs,
+                  getServiceToken: async (tenantId, scope) => {
+                    const token = await createServiceToken(
+                      ctx,
+                      tenantId,
+                      scope ?? "controlplane:sync",
+                    );
+                    return token.access_token;
+                  },
+                }),
+              ]
+            : []),
+          // Must come after delivery destinations so the flag only flips when
+          // the upstream hook destinations actually succeeded.
+          new RegistrationFinalizerDestination(base.users),
+          // Archive last: the relay stops the destination loop on first failure,
+          // so a Pipelines outage must not be able to block real delivery.
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
+            : []),
+        ];
+      },
     }),
   );
 
@@ -437,7 +440,10 @@ export default function create(config: AuthHeroConfig) {
     // createUserUpdateHooks, createUserDeletionHooks). Holding a transaction
     // across the full request would enclose external I/O — pre-registration
     // webhooks and user-authored action code — which is unsafe on hosted DBs.
-    setRequestData(ctx, applyDecorators(ctx, managementAdapter));
+    setRequestData(
+      ctx,
+      applyDecorators(ctx, getBaseData(ctx, managementAdapter)),
+    );
     // Startup config, the same value on every request, so not the #140 race.
     // eslint-disable-next-line no-restricted-syntax
     ctx.env.entityHooks = config.entityHooks;
