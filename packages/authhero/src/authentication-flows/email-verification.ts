@@ -4,6 +4,8 @@ import {
   LoginSession,
   LoginSessionState,
   RateLimitDecision,
+  Strategy,
+  StrategyType,
   User,
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
@@ -284,6 +286,9 @@ export async function verifyLoginEmailCode(
     type: LogTypes.SUCCESS_VERIFICATION_EMAIL,
     description: "Successful email verification",
     userId: user.user_id,
+    connection: pending.connection,
+    strategy: Strategy.USERNAME_PASSWORD,
+    strategy_type: StrategyType.DATABASE,
   });
 
   const primaryUser = await resolvePrimaryUser(data.users, tenantId, {

@@ -17,6 +17,7 @@ import type {
 import {
   LogTypes,
   Strategy,
+  StrategyType,
   isDatabaseConnectionStrategy,
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
@@ -332,6 +333,15 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             password: { hash, algorithm },
             app_metadata: invite.app_metadata || {},
             user_metadata: invite.user_metadata || {},
+          });
+          logMessage(ctx, client.tenant.id, {
+            type: LogTypes.SUCCESS_SIGNUP,
+            description: "Successful signup",
+            userId: user_id,
+            username: email,
+            connection,
+            strategy: Strategy.USERNAME_PASSWORD,
+            strategy_type: StrategyType.DATABASE,
           });
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);

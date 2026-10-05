@@ -534,15 +534,19 @@ export async function passwordGrant(
       });
     }
 
-    logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_LOGIN,
-      description: "Email not verified",
-    });
-
     // UI flows that handle verification keep the login session alive so the
     // user can finish it after verifying (code screen, or the emailed link
-    // returning to the login screen). Callers without a verification step
-    // can't continue the session.
+    // returning to the login screen). That is a pending step, not a failed
+    // login: the verification request ("svr") above records it, and the
+    // completed login logs "s". Callers without a verification step can't
+    // continue the session, so for them it is a failure.
+    const continuesToVerification = Boolean(loginSession && emailVerification);
+    if (!continuesToVerification) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_LOGIN,
+        description: "Email not verified",
+      });
+    }
     if (loginSession && !emailVerification) {
       await failLoginSession(
         ctx,

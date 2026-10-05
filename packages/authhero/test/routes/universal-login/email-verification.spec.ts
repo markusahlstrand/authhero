@@ -317,6 +317,47 @@ describe("u2 signup with enforced email verification", () => {
     expect(sent[0].to).toBe("new-user@example.com");
     expect(sent[0].data.code).toMatch(/^\d{6}$/);
   });
+
+  it("logs the signup, verification and login like Auth0", async () => {
+    const { u2App, env, state, getSentEmails } = await setup();
+
+    await postScreen(u2App, env, "signup", state, {
+      email: "new-user@example.com",
+      password: "NewPassword1!",
+      re_password: "NewPassword1!",
+    });
+    const ok = await postScreen(u2App, env, "email-verification-code", state, {
+      code: getSentEmails()[0].data.code,
+    });
+    expect(ok.redirect).toContain("code=");
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const byType = (type: string) => logs.filter((l) => l.type === type);
+
+    // A signup continuing into the verification step is not a failed login
+    expect(byType("f")).toHaveLength(0);
+
+    const [signup] = byType("ss");
+    expect(signup?.user_name).toBe("new-user@example.com");
+    expect(signup?.connection).toBe(Strategy.USERNAME_PASSWORD);
+    expect(signup?.strategy_type).toBe("database");
+
+    const [request] = byType("svr");
+    expect(request?.description).toBe(
+      "Verification code sent to new-user@example.com",
+    );
+
+    const [verified] = byType("sv");
+    expect(verified?.user_id).toBe(signup?.user_id);
+    expect(verified?.connection).toBe(Strategy.USERNAME_PASSWORD);
+    expect(verified?.strategy_type).toBe("database");
+
+    expect(byType("s")).toHaveLength(1);
+  });
 });
 
 describe("u2 login email verification requires a validated password", () => {
