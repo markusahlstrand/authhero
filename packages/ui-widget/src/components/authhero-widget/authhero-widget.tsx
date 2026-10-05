@@ -599,15 +599,29 @@ export class AuthheroWidget {
    */
   private pendingRenderResolvers: Array<() => void> = [];
 
+  /**
+   * Number of `swapScreen` calls still running (rendering or animating the
+   * card height). A counter rather than a flag because a newer swap can start
+   * before a superseded one has settled.
+   */
+  private activeSwaps = 0;
+
+  private updateReadyAttribute() {
+    if (Build.isBrowser) {
+      this.el.toggleAttribute(
+        "data-ready",
+        !this.loading && this.activeSwaps === 0,
+      );
+    }
+  }
+
   componentDidRender() {
     // `data-ready` marks the widget as interactive: hydrated in the browser
     // (the SSR markup already carries Stencil's `hydrated` class, so that
     // can't tell server and client apart) and not mid-submit or mid-swap.
     // Stencil defers this hook until child nodes have rendered, so the
     // fields are live too. E2E tests wait on `authhero-widget[data-ready]`.
-    if (Build.isBrowser) {
-      this.el.toggleAttribute("data-ready", !this.loading);
-    }
+    this.updateReadyAttribute();
     if (this.pendingRenderResolvers.length === 0) return;
     const resolvers = this.pendingRenderResolvers;
     this.pendingRenderResolvers = [];
@@ -659,6 +673,21 @@ export class AuthheroWidget {
       return;
     }
 
+    // Hold `data-ready` off until the new screen has rendered and the height
+    // animation has finished; `apply()` clears `loading` before either.
+    this.activeSwaps++;
+    try {
+      await this.animateSwap(card, apply);
+    } finally {
+      this.activeSwaps--;
+      this.updateReadyAttribute();
+    }
+  }
+
+  private async animateSwap(
+    card: HTMLElement,
+    apply: () => void,
+  ): Promise<void> {
     // Lock the current height and clip, so swapping the content doesn't jump
     // before the animation runs.
     const startHeight = card.getBoundingClientRect().height;
