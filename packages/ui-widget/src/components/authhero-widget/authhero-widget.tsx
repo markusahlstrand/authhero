@@ -7,6 +7,7 @@ import {
   EventEmitter,
   Watch,
   Element,
+  Build,
 } from "@stencil/core";
 import type {
   UiScreen,
@@ -32,6 +33,20 @@ const CHOICE_LIST_SEARCH_THRESHOLD = 5;
  * (CARDS, FILE, RECAPTCHA, …) can carry `required` in the schema too, and
  * gating on them would leave Continue disabled with no way to satisfy it.
  */
+/**
+ * Field types rendered as a single plain text input whose value maps 1:1 to
+ * formData. Composite fields (TEL, DATE) and choice/checkbox fields keep
+ * internal state, so they're not adopted from pre-hydration markup.
+ */
+const PREHYDRATION_TEXT_TYPES = new Set([
+  "TEXT",
+  "EMAIL",
+  "CODE",
+  "PASSWORD",
+  "NUMBER",
+  "URL",
+]);
+
 const FILLABLE_FIELD_TYPES = new Set([
   "TEXT",
   "EMAIL",
@@ -585,6 +600,14 @@ export class AuthheroWidget {
   private pendingRenderResolvers: Array<() => void> = [];
 
   componentDidRender() {
+    // `data-ready` marks the widget as interactive: hydrated in the browser
+    // (the SSR markup already carries Stencil's `hydrated` class, so that
+    // can't tell server and client apart) and not mid-submit or mid-swap.
+    // Stencil defers this hook until child nodes have rendered, so the
+    // fields are live too. E2E tests wait on `authhero-widget[data-ready]`.
+    if (Build.isBrowser) {
+      this.el.toggleAttribute("data-ready", !this.loading);
+    }
     if (this.pendingRenderResolvers.length === 0) return;
     const resolvers = this.pendingRenderResolvers;
     this.pendingRenderResolvers = [];
@@ -821,12 +844,50 @@ export class AuthheroWidget {
       );
     }
 
+    if (Build.isBrowser && this._screen) {
+      this.adoptPrehydrationValues(this._screen);
+    }
+
     // Load persisted state if available
     this.loadPersistedState();
 
     // Fetch screen from API if URL provided and no screen prop
     if (this.apiUrl && !this._screen) {
       await this.fetchScreen(this.screenId);
+    }
+  }
+
+  /**
+   * Carry over text the user (or a password manager, or a test driver) put
+   * into the server-rendered inputs before the client bundle loaded. Those
+   * inputs had no `onInput` handler yet, so `formData` never saw the value:
+   * the first client render would reset them to "" and keep the submit
+   * button disabled. The declarative shadow roots are still the SSR ones
+   * here — `componentWillLoad` runs before the first client render.
+   */
+  private adoptPrehydrationValues(screen: UiScreen) {
+    const root = this.el.shadowRoot;
+    if (!root) return;
+    const roots: ShadowRoot[] = [root];
+    root.querySelectorAll("authhero-node").forEach((node) => {
+      if (node.shadowRoot) roots.push(node.shadowRoot);
+    });
+
+    const adopted: Record<string, string> = {};
+    for (const component of screen.components ?? []) {
+      if (!PREHYDRATION_TEXT_TYPES.has(component.type)) continue;
+      for (const r of roots) {
+        const input = Array.from(
+          r.querySelectorAll<HTMLInputElement>("input[name]"),
+        ).find((el) => el.name === component.id && el.type !== "hidden");
+        if (input?.value) {
+          adopted[component.id] = input.value;
+          break;
+        }
+      }
+    }
+    if (Object.keys(adopted).length > 0) {
+      this.formData = { ...this.formData, ...adopted };
     }
   }
 
