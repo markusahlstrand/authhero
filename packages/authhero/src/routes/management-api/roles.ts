@@ -390,10 +390,10 @@ const getByIdPermissions = defineRoute({
     const checkpoint = from !== undefined || take !== undefined;
 
     // Checkpoint mode has a fixed (resource server, permission) order.
-    if (checkpoint && sort !== undefined) {
+    if (checkpoint && (sort !== undefined || q !== undefined)) {
       throw new HTTPException(400, {
         message:
-          "Sorting is not supported with checkpoint pagination for role permissions",
+          "Sorting and filtering are not supported with checkpoint pagination for role permissions",
       });
     }
 
