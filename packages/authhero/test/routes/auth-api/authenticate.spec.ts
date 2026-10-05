@@ -200,4 +200,52 @@ describe("authenticate", () => {
       description: "Invalid password",
     });
   });
+
+  it("answers wrong guesses on a locked-out account like an unknown user", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.users.create("tenantId", {
+      email: "locked@example.com",
+      email_verified: true,
+      name: "Test User",
+      nickname: "Test User",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|lockedUser`,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|lockedUser`,
+      password: await bcryptjs.hash("Test1234!", 10),
+      algorithm: "bcrypt",
+    });
+
+    const attempt = async (username: string, password: string) => {
+      const response = await oauthClient.co.authenticate.$post({
+        json: {
+          client_id: "clientId",
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          realm: Strategy.USERNAME_PASSWORD,
+          password,
+          username,
+        },
+      });
+      return { status: response.status, body: await response.text() };
+    };
+
+    // Past the three-strike limit, wrong guesses must stay indistinguishable
+    // from guesses against an account that doesn't exist.
+    for (let i = 0; i < 5; i++) {
+      const existing = await attempt("locked@example.com", "WrongPassword");
+      const unknown = await attempt("nobody@example.com", "WrongPassword");
+      expect(existing).toEqual(unknown);
+    }
+
+    // The lockout itself still applies, and is only revealed to a caller
+    // holding the correct password.
+    const correct = await attempt("locked@example.com", "Test1234!");
+    expect(correct.status).toEqual(403);
+    expect(correct.body).toContain("Too many failed login attempts");
+  });
 });

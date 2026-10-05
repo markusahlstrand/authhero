@@ -426,7 +426,23 @@ export async function passwordGrant(
     primaryUser,
   );
 
-  if (recentFailedLogins >= FAILED_LOGIN_LIMIT) {
+  const lockedOut = recentFailedLogins >= FAILED_LOGIN_LIMIT;
+
+  const password = await data.passwords.get(client.tenant.id, user.user_id);
+
+  let valid = false;
+  if (password) {
+    valid = await bcryptjs.compare(authParams.password, password.password);
+  } else {
+    await runDummyPasswordCompare(authParams.password);
+  }
+
+  // The lockout is decided only after a real password compare, and a wrong
+  // password while locked gets the generic invalid-credentials error. Only a
+  // caller holding the correct password learns the account is locked out —
+  // otherwise the Nth wrong guess (or any guess on a locked account) would
+  // reveal that the account exists.
+  if (lockedOut) {
     logMessage(ctx, client.tenant.id, {
       // TODO: change to BLOCKED_ACCOUNT_EMAIL
       type: LogTypes.FAILED_LOGIN,
@@ -436,19 +452,13 @@ export async function passwordGrant(
     // Note: Not marking login session as FAILED - the user should still be able
     // to authenticate via other methods (OTP, social login, etc.)
 
+    if (!valid) {
+      throw invalidCredentialsError();
+    }
     throw new AuthError(403, {
       message: "Too many failed login attempts",
       code: "TOO_MANY_FAILED_LOGINS",
     });
-  }
-
-  const password = await data.passwords.get(client.tenant.id, user.user_id);
-
-  let valid = false;
-  if (password) {
-    valid = await bcryptjs.compare(authParams.password, password.password);
-  } else {
-    await runDummyPasswordCompare(authParams.password);
   }
 
   if (!valid && !password) {

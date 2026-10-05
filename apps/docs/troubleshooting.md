@@ -33,7 +33,7 @@ The password login failed, and the response deliberately does not say why, so it
 
 **`403 TOO_MANY_FAILED_LOGINS`**
 
-Per-user lockout: three failed password attempts within a rolling five-minute window. It is counted per user, not per IP, and it expires on its own — there is nothing to unblock. Other authentication methods (OTP, social login) are deliberately left working, so a locked-out user can still get in by email code.
+Per-user lockout: three failed password attempts within a rolling five-minute window. It is counted per user, not per IP, and it expires on its own — there is nothing to unblock. Only a login with the correct password gets this code; wrong guesses on a locked account keep getting `INVALID_CREDENTIALS`, so the lockout can't be used to discover which accounts exist. Other authentication methods (OTP, social login) are deliberately left working, so a locked-out user can still get in by email code.
 
 **`429 TOO_MANY_REQUESTS`**
 
