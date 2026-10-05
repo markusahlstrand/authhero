@@ -58,6 +58,17 @@ const roleUsersWithNextSchema = z.object({
   users: z.array(roleUserSchema),
 });
 
+// The shared `take` uses parseInt, which reads "2.5" and "2junk" as 2.
+// Require the raw value to be all digits; an empty value stays undefined.
+const strictTakeSchema = z
+  .string()
+  .optional()
+  .refine((t) => !t || /^\d+$/.test(t), {
+    message: "take must be a positive integer",
+  })
+  .transform((t) => (t ? Number(t) : undefined))
+  .openapi({ description: "Number of results per page. Defaults to 50." });
+
 // Auth0 caps per_page/take at 100 on this endpoint; the cap also bounds the
 // hydration fan-out below (one users.get() per returned user). Only the
 // parameters the handler consumes are accepted — Auth0 supports neither
@@ -72,14 +83,12 @@ const roleUsersQuerySchema = querySchema
   })
   .extend({
     per_page: querySchema.shape.per_page.pipe(z.number().int().min(0).max(100)),
-    take: querySchema.shape.take.pipe(
-      z.number().int().min(1).max(100).optional(),
-    ),
+    take: strictTakeSchema.pipe(z.number().int().min(1).max(100).optional()),
   });
 // Checkpoint `take` reaches the adapters as a raw limit (DynamoDB rejects
 // anything below 1), so reject non-positive and non-numeric values here.
 const checkpointQuerySchema = querySchema.extend({
-  take: querySchema.shape.take.pipe(z.number().int().min(1).optional()),
+  take: strictTakeSchema.pipe(z.number().int().min(1).optional()),
 });
 
 const getRoot = defineRoute({

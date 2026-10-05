@@ -386,7 +386,7 @@ describe("roles", () => {
     );
     expect(filteredCheckpoint.status).toBe(400);
 
-    for (const take of ["0", "-1", "abc"]) {
+    for (const take of ["0", "-1", "abc", "2.5", "2junk"]) {
       const invalidTake = await client.roles[":id"].permissions.$get(
         {
           param: { id: role.id },
@@ -893,6 +893,18 @@ describe("GET /api/v2/roles/:id/users", () => {
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(takeResponse.status).toBe(400);
+
+    const fractionalTakeResponse = await managementClient.roles[
+      ":id"
+    ].users.$get(
+      {
+        param: { id: role.id },
+        query: { take: "2.5" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(fractionalTakeResponse.status).toBe(400);
   });
 
   it("walks all users across pages via the opaque next cursor", async () => {
