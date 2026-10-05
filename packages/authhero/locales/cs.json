@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Upozornění",
       "backText": "Vrátit se zpět",
+      "backToLoginText": "Zpět na přihlášení",
       "cancelText": "Zrušit",
       "closeText": "Zavřít",
       "contactSupportText": "Potřebujete pomoc?",

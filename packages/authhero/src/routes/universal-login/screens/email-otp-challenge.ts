@@ -178,7 +178,7 @@ export async function emailOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: `${backPath}?state=${encodeURIComponent(state)}`,
       },
     ],

@@ -125,7 +125,7 @@ export async function smsOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],

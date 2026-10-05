@@ -162,7 +162,7 @@ export async function loginPasswordlessIdentifierScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: loginUrl,
       },
     ],

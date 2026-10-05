@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Advarsler",
       "backText": "Gå tilbage",
+      "backToLoginText": "Tilbage til login",
       "cancelText": "Gå tilbage",
       "closeText": "Luk",
       "contactSupportText": "Har du brug for hjælp?",
@@ -643,7 +644,7 @@
   },
   "reset-password": {
     "reset-password": {
-      "backToLoginText": "Gå tilbage",
+      "backToLoginText": "Tilbage til login",
       "buttonText": "Send e-mail til nulstilling af adgangskode",
       "codeExpired": "Din kode til nulstilling af adgangskode er udløbet. Anmod venligst om en ny.",
       "confirmPasswordLabel": "Bekræft adgangskode",

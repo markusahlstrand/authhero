@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Meddelanden",
       "backText": "Gå tillbaka",
+      "backToLoginText": "Tillbaka till inloggning",
       "cancelText": "Gå tillbaka",
       "closeText": "Stäng",
       "contactSupportText": "Behöver du hjälp?",
@@ -643,7 +644,7 @@
   },
   "reset-password": {
     "reset-password": {
-      "backToLoginText": "Gå tillbaka",
+      "backToLoginText": "Tillbaka till inloggning",
       "buttonText": "Skicka",
       "codeExpired": "Din kod för lösenordsåterställning har gått ut. Begär en ny.",
       "confirmPasswordLabel": "Bekräfta lösenord",

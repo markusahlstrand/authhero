@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Ilmoitukset",
       "backText": "Palaa takaisin",
+      "backToLoginText": "Takaisin kirjautumiseen",
       "cancelText": "Palaa takaisin",
       "closeText": "Sulje",
       "contactSupportText": "Tarvitsetko apua?",
@@ -643,7 +644,7 @@
   },
   "reset-password": {
     "reset-password": {
-      "backToLoginText": "Palaa takaisin",
+      "backToLoginText": "Takaisin kirjautumiseen",
       "buttonText": "Lähetä salasanan palautussähköposti",
       "codeExpired": "Salasanan palautuskoodisi on vanhentunut. Pyydä uusi koodi.",
       "confirmPasswordLabel": "Vahvista salasana",

@@ -36,7 +36,6 @@ export async function forgotPasswordScreen(
     locale,
     customText,
   );
-  const { m: loginM } = createTranslation("login", "login", locale, customText);
 
   const components: FormNodeComponent[] = [
     // Info text
@@ -100,7 +99,6 @@ export async function forgotPasswordScreen(
       {
         id: "back",
         text: m.backToLoginText(),
-        linkText: loginM.buttonText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -130,7 +128,6 @@ async function forgotPasswordSentScreen(
     locale,
     customText,
   );
-  const { m: loginM } = createTranslation("login", "login", locale, customText);
 
   const components: FormNodeComponent[] = [
     {
@@ -155,7 +152,6 @@ async function forgotPasswordSentScreen(
       {
         id: "back",
         text: m.backToLoginText(),
-        linkText: loginM.buttonText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
