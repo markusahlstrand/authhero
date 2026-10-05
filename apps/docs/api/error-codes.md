@@ -132,8 +132,7 @@ values:
 
 | Code                     | Status | Meaning                                                     |
 | ------------------------ | ------ | ----------------------------------------------------------- |
-| `INVALID_PASSWORD`       | 403    | The password did not match                                  |
-| `USER_NOT_FOUND`         | 403    | No user matched the supplied identifier                     |
+| `INVALID_CREDENTIALS`    | 403    | Unknown user or wrong password; deliberately not told apart |
 | `USER_BLOCKED`           | 403    | The account is blocked and cannot log in                    |
 | `EMAIL_NOT_VERIFIED`     | 403    | The connection requires a verified email address            |
 | `TOO_MANY_FAILED_LOGINS` | 403    | Too many recent failed password attempts for this account   |

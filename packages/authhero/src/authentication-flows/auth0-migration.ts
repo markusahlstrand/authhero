@@ -78,8 +78,8 @@ interface AttemptUpstreamPasswordParams {
  * via the password-realm grant. On success, creates the local user (if
  * missing), stores the bcrypt hash of the password locally, and returns the
  * user. On any failure, returns null — the caller surfaces the existing
- * INVALID_PASSWORD/USER_NOT_FOUND error so the upstream's existence is not
- * leaked to clients.
+ * INVALID_CREDENTIALS error so the upstream's existence is not leaked to
+ * clients.
  *
  * Subsequent logins are served entirely locally because the password row now
  * exists on our side.

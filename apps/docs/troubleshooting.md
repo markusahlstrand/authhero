@@ -24,17 +24,16 @@ The `redirect_uri` did not match any of the application's **Allowed Callback URL
 
 The auth server's own issuer and universal-login URLs are always accepted as callbacks, so flows that return to AuthHero itself do not need to be registered.
 
-**`403 USER_NOT_FOUND`**
+**`403 INVALID_CREDENTIALS`** ("Wrong email or password.")
 
-No user matched the identifier for this tenant and connection. The usual causes are logging in against the wrong tenant (see [Wrong tenant, or none](#wrong-tenant-or-none) below) and typing an identifier that was never created — the Docker seed creates the username `admin`, not `admin@example.com`. See [Your first login](/first-login) for exactly what the first run creates.
+The password login failed, and the response deliberately does not say why, so it cannot be used to find out which accounts exist. Check the tenant logs to tell the cases apart: `fu` means no user matched the identifier, `fp` means the user exists but the password did not verify.
 
-**`403 INVALID_PASSWORD`**
-
-The identifier resolved to a user, but the password did not verify. If the user signed up through a social or passwordless connection they may have no password at all; check the user's identities in the dashboard.
+- **`fu`**: the usual causes are logging in against the wrong tenant (see [Wrong tenant, or none](#wrong-tenant-or-none) below) and typing an identifier that was never created — the Docker seed creates the username `admin`, not `admin@example.com`. See [Your first login](/first-login) for exactly what the first run creates.
+- **`fp`**: if the user signed up through a social or passwordless connection they may have no password at all; check the user's identities in the dashboard.
 
 **`403 TOO_MANY_FAILED_LOGINS`**
 
-Per-user lockout: three failed password attempts within a rolling five-minute window. It is counted per user, not per IP, and it expires on its own — there is nothing to unblock. Other authentication methods (OTP, social login) are deliberately left working, so a locked-out user can still get in by email code.
+Per-user lockout: three failed password attempts within a rolling five-minute window. It is counted per user, not per IP, and it expires on its own — there is nothing to unblock. Only a login with the correct password gets this code; wrong guesses on a locked account keep getting `INVALID_CREDENTIALS`, so the lockout can't be used to discover which accounts exist. Other authentication methods (OTP, social login) are deliberately left working, so a locked-out user can still get in by email code.
 
 **`429 TOO_MANY_REQUESTS`**
 
@@ -189,8 +188,7 @@ Errors from the interactive login flow use a `code`/`message` shape instead:
 
 | `code`                   | Status | Meaning                                              |
 | ------------------------ | ------ | ---------------------------------------------------- |
-| `USER_NOT_FOUND`         | 403    | No user matched the identifier for this tenant.      |
-| `INVALID_PASSWORD`       | 403    | The password did not verify.                         |
+| `INVALID_CREDENTIALS`    | 403    | Unknown user or wrong password; see tenant logs.     |
 | `TOO_MANY_FAILED_LOGINS` | 403    | Three failed attempts in five minutes for this user. |
 | `USER_BLOCKED`           | 403    | The user record is blocked.                          |
 | `EMAIL_NOT_VERIFIED`     | 403    | The connection requires a verified email address.    |

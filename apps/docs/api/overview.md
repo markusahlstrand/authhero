@@ -95,7 +95,8 @@ Two tenant-level attack-protection controls sit on top of the scopes above:
   it does not run at all. When both are in place it skips IPs on that section's
   `allowlist`.
 - **Brute-force protection** — password logins are refused with `403` and the
-  code `TOO_MANY_FAILED_LOGINS` after 3 failed attempts within 5 minutes. The
+  code `TOO_MANY_FAILED_LOGINS` after 3 failed attempts within 5 minutes
+  (wrong passwords on a locked account still get `INVALID_CREDENTIALS`). The
   counter is stored against the user's primary (linked) account and is cleared
   by a successful login or a password reset. This one is _not_ adapter-backed —
   it counts against the user record and applies whether a `rateLimit` adapter

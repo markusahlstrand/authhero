@@ -260,10 +260,7 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         let errorMessage =
           (!authError.code && authError.message) || m.unexpectedError();
 
-        if (
-          authError.code === "INVALID_PASSWORD" ||
-          authError.code === "USER_NOT_FOUND"
-        ) {
+        if (authError.code === "INVALID_CREDENTIALS") {
           errorMessage = m["wrong-credentials"]();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
           return {

@@ -66,7 +66,7 @@ Content-Type: application/json
 2. On miss, read the upstream credentials from this connection's `options.configuration`.
 3. Call `POST /oauth/token` with `grant_type=http://auth0.com/oauth/grant-type/password-realm`, `realm=<DB connection name>`, the supplied username/password, and the upstream client credentials.
 4. On 200, fetch the profile from `/userinfo` and create the local user (if missing) + bcrypt hash.
-5. On any upstream error, surface the existing `INVALID_PASSWORD` rejection so the upstream's existence is not leaked.
+5. On any upstream error, surface the existing `INVALID_CREDENTIALS` rejection so the upstream's existence is not leaked.
 
 ### Enable refresh-token re-mint at the tenant level
 
@@ -114,7 +114,7 @@ Once the upstream password-fallback traffic drops to a handful per day you can f
 
 ## Edge cases and gotchas
 
-- **MFA-enforced users**: Auth0 returns `mfa_required` from the password-realm grant. AuthHero treats it as a generic `INVALID_PASSWORD` to avoid leaking that the user exists upstream — affected users must reset on the AuthHero side.
+- **MFA-enforced users**: Auth0 returns `mfa_required` from the password-realm grant. AuthHero treats it as a generic `INVALID_CREDENTIALS` to avoid leaking that the user exists upstream — affected users must reset on the AuthHero side.
 - **`unauthorized_client: Grant type … not allowed`**: the Auth0 application has not been granted the password-realm grant. Enable it under Application → Advanced → Grant Types.
 - **Failed-login throttling still applies**: the existing 3-strikes lockout fires whether the password compare runs locally or against upstream, so an attacker can't bypass it by forcing the upstream path.
 - **Refresh-token re-mint requires a configured Migration Source**: if none is enabled for the tenant, unrecognized refresh tokens fall back to `invalid_grant` and the client must re-authenticate interactively.
