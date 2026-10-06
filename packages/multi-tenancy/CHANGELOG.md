@@ -1,5 +1,25 @@
 # @authhero/multi-tenancy
 
+## 15.1.0
+
+### Minor Changes
+
+- de15e05: Fix per-tenant database isolation. The adapters from `databaseIsolation.getAdapters` were replaced by every AuthHero route group with a stack built from the startup `dataAdapter`, so the auth API, universal login, u2, SAML, SCIM and management API read and wrote the shared database instead of the tenant's.
+  - `authhero`: new optional `ctx.var.baseData` request variable. When an earlier middleware installs a raw adapter there, every route group composes its per-request stack (and drains the outbox and writes logs) on top of it instead of `dataAdapter` / `managementDataAdapter`.
+  - `@authhero/multi-tenancy`: `createDatabaseMiddleware` sets `ctx.var.baseData` and no longer writes to the runtime's `env` object, which Cloudflare Workers share between requests; it puts `data` on a per-request copy instead. The package's own routes and middleware read the adapter stack from `ctx.var.data`, falling back to `ctx.env.data` when mounted outside AuthHero.
+
+  Both packages must be upgraded together for isolation to take effect.
+
+### Patch Changes
+
+- Updated dependencies [de15e05]
+- Updated dependencies [48aaf03]
+- Updated dependencies [e988384]
+- Updated dependencies [2913547]
+- Updated dependencies [f91ca54]
+  - authhero@9.21.0
+  - @authhero/adapter-interfaces@4.19.0
+
 ## 15.0.2
 
 ### Patch Changes

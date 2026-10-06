@@ -1,5 +1,34 @@
 # authhero
 
+## 9.21.0
+
+### Minor Changes
+
+- de15e05: Fix per-tenant database isolation. The adapters from `databaseIsolation.getAdapters` were replaced by every AuthHero route group with a stack built from the startup `dataAdapter`, so the auth API, universal login, u2, SAML, SCIM and management API read and wrote the shared database instead of the tenant's.
+  - `authhero`: new optional `ctx.var.baseData` request variable. When an earlier middleware installs a raw adapter there, every route group composes its per-request stack (and drains the outbox and writes logs) on top of it instead of `dataAdapter` / `managementDataAdapter`.
+  - `@authhero/multi-tenancy`: `createDatabaseMiddleware` sets `ctx.var.baseData` and no longer writes to the runtime's `env` object, which Cloudflare Workers share between requests; it puts `data` on a per-request copy instead. The package's own routes and middleware read the adapter stack from `ctx.var.data`, falling back to `ctx.env.data` when mounted outside AuthHero.
+
+  Both packages must be upgraded together for isolation to take effect.
+
+- e988384: Add checkpoint pagination (`from`/`take` with an opaque `next` cursor) to `GET /api/v2/roles/{id}/permissions`, backed by a new optional `rolePermissions.listCheckpoint` adapter method. `page`/`per_page`/`include_totals` responses are unchanged. The DynamoDB connections list now returns its `next` cursor, so checkpoint walks over connections no longer stop after the first page.
+
+### Patch Changes
+
+- 48aaf03: Password logins no longer reveal whether an account exists. An unknown email, a broken linked account and a wrong password now all fail the same way: `403` with code `INVALID_CREDENTIALS` and the message "Wrong email or password.". Before, an unknown user got `USER_NOT_FOUND` / "User not found" and a wrong password got `INVALID_PASSWORD` / "Invalid password", so a client calling `/co/authenticate` could tell them apart. Clients that match on the old codes or messages see the new one instead. The tenant logs still record `fu` for an unknown user and `fp` for a wrong password.
+
+  The unknown-user path also runs a bcrypt check against a dummy hash now, so it takes about as long as a wrong password and response time no longer gives the answer away either. The same applies to a user who has no local password.
+
+  The per-user lockout no longer gives it away either. The lockout is now checked after the password compare: wrong guesses on a locked account get the same `INVALID_CREDENTIALS` response as an unknown user, and only a login with the correct password gets `TOO_MANY_FAILED_LOGINS`.
+
+- 2913547: Align signup and email-verification logs with Auth0. Database signups through the u2 signup screen, the classic `/u/signup` page and invitation acceptance now log `ss` (Success Signup). A login that continues into the email verification step no longer logs a failed login (`f`), the `sv` log carries the connection and strategy, and the `svr` log for a verification code says so in its description.
+- f91ca54: u2: the back link on the forgot-password and reset-password-code screens now reads "Back to login" instead of "Back to login Continue". The OTP, password, magic-link, email-verification and passwordless screens now say "Back to login" instead of "Back".
+- Updated dependencies [e988384]
+- Updated dependencies [65cf8e7]
+  - @authhero/adapter-interfaces@4.19.0
+  - @authhero/widget@0.40.3
+  - @authhero/proxy@0.11.5
+  - @authhero/saml@0.5.17
+
 ## 9.20.0
 
 ### Minor Changes

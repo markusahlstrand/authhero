@@ -1,5 +1,17 @@
 # @authhero/aws-adapter
 
+## 1.4.0
+
+### Minor Changes
+
+- e988384: Add checkpoint pagination (`from`/`take` with an opaque `next` cursor) to `GET /api/v2/roles/{id}/permissions`, backed by a new optional `rolePermissions.listCheckpoint` adapter method. `page`/`per_page`/`include_totals` responses are unchanged. The DynamoDB connections list now returns its `next` cursor, so checkpoint walks over connections no longer stop after the first page.
+
+### Patch Changes
+
+- Updated dependencies [e988384]
+  - @authhero/adapter-interfaces@4.19.0
+  - @authhero/proxy@0.11.5
+
 ## 1.3.12
 
 ### Patch Changes
