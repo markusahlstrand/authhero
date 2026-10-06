@@ -392,6 +392,19 @@ export interface AuthHeroConfig {
   managementApiExtensions?: ManagementApiExtension[];
 
   /**
+   * Middleware that runs inside the management API, after authentication and
+   * tenant resolution and before any route handler, in the order given. Use
+   * it for request guards that need `ctx.var.tenant_id`, `ctx.var.user` and
+   * `ctx.var.data`, such as `@authhero/multi-tenancy`'s protection of synced
+   * entities.
+   *
+   * Registering middleware on the app returned by `init()` does not work for
+   * this: the management routes are already mounted, and Hono never runs
+   * middleware registered after the handler that answers a request.
+   */
+  managementApiMiddleware?: MiddlewareHandler[];
+
+  /**
    * Remote MCP server for the Management API (`POST /mcp` plus RFC 9728
    * protected-resource metadata). Only meaningful on a deployment that serves
    * the control plane (`multiTenancyConfig.controlPlaneTenantId`).

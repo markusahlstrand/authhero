@@ -12,7 +12,6 @@ import { createInlineExecutor, enqueueTenantOperation } from "./operations";
 import { createTenantsOpenAPIRouter } from "./routes";
 import {
   createProtectSyncedMiddleware,
-  createControlPlaneTenantMiddleware,
   withRuntimeFallback,
   withSystemResourceServerInheritance,
 } from "./middleware";
@@ -407,18 +406,15 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       ...managementApiExtensions,
       { path: "/tenants", router: tenantsRouter },
     ],
+    // Child tenants must not modify entities synced from the control plane.
+    // This has to run inside the management API (after auth, before the
+    // routes): middleware added to `app` after init() never runs for the
+    // already-mounted management routes.
+    managementApiMiddleware: [
+      ...(restConfig.managementApiMiddleware ?? []),
+      ...(syncEnabled ? [createProtectSyncedMiddleware()] : []),
+    ],
   });
-
-  // Add middleware to resolve tenant from org_name for control plane users
-  app.use(
-    "/api/v2/*",
-    createControlPlaneTenantMiddleware(controlPlaneTenantId),
-  );
-
-  // Add middleware to protect synced entities
-  if (syncEnabled) {
-    app.use("/api/v2/*", createProtectSyncedMiddleware());
-  }
 
   return { app, controlPlaneTenantId };
 }

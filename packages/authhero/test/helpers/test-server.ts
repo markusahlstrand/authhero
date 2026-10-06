@@ -66,6 +66,9 @@ type getEnvParams = {
   // Without this, every request gets a fresh per-request cache that
   // immediately dies — making warm-cache assertions impossible.
   persistentCache?: boolean;
+  // Middleware run inside the management API after auth, before the routes
+  // (the `config.managementApiMiddleware` integration point).
+  managementApiMiddleware?: import("hono").MiddlewareHandler[];
   // Optional middleware mounted inside the management API after the CORS
   // middleware (the `config.tenantDispatch` integration point).
   tenantDispatch?: import("hono").MiddlewareHandler;
@@ -288,6 +291,9 @@ export async function getTestServer(
       : {}),
     ...(args.codeExecutor ? { codeExecutor: args.codeExecutor } : {}),
     ...(args.tenantDispatch ? { tenantDispatch: args.tenantDispatch } : {}),
+    ...(args.managementApiMiddleware
+      ? { managementApiMiddleware: args.managementApiMiddleware }
+      : {}),
     ...(args.tenantUpgrade ? { tenantUpgrade: args.tenantUpgrade } : {}),
     ...(args.tenantOperationExecutor
       ? { tenantOperationExecutor: args.tenantOperationExecutor }
