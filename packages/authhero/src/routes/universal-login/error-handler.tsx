@@ -7,11 +7,9 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { RedirectException } from "../../errors/redirect-exception";
-import { DEFAULT_THEME } from "../../constants/defaultTheme";
-import { extractBrandingProps, resolveDarkMode } from "./u2-widget-page";
 import { ErrorPage } from "./error-page";
+import { resolveErrorPageBranding } from "./branded-error-response";
 import type { Bindings, Variables } from "../../types";
-import type { Branding, Theme } from "@authhero/adapter-interfaces";
 import { buildEmbedErrorScript, frameAncestorsHeaders } from "./embed";
 
 /**
@@ -105,32 +103,7 @@ export function createUniversalLoginErrorHandler() {
         ? "An unexpected error occurred. Please try again later."
         : getUserFriendlyMessage(err);
 
-    // Try to fetch tenant branding for a branded error page
-    let branding: Branding | null = null;
-    let theme: Theme | null = null;
-    try {
-      const tenantId = c.var?.tenant_id;
-      if (tenantId && c.env?.data) {
-        [theme, branding] = await Promise.all([
-          c.env.data.themes.get(tenantId, "default"),
-          c.env.data.branding.get(tenantId),
-        ]);
-      }
-    } catch {
-      // Fall back to default styling if branding fetch fails
-    }
-
-    const resolvedTheme = theme ?? DEFAULT_THEME;
-
-    // Strip favicon_url when not on a custom domain
-    const brandingWithFavicon = branding
-      ? {
-          ...branding,
-          favicon_url: c.var?.custom_domain ? branding.favicon_url : undefined,
-        }
-      : null;
-
-    const darkMode = resolveDarkMode(c, brandingWithFavicon);
+    const brandingProps = await resolveErrorPageBranding(c, c.var?.tenant_id);
 
     // An error thrown after initJSXRoute resolved an embedded (iframe)
     // session: keep the page frameable by the application and hand it the
@@ -149,9 +122,7 @@ export function createUniversalLoginErrorHandler() {
       <ErrorPage
         message={message}
         statusCode={status}
-        branding={extractBrandingProps(brandingWithFavicon)}
-        theme={resolvedTheme}
-        darkMode={darkMode}
+        {...brandingProps}
         embed={Boolean(embed)}
         extraScript={embedScript}
       />,
