@@ -9,7 +9,10 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { HTTPException } from "hono/http-exception";
 import { escapeHtml } from "../sanitization-utils";
-import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
+import {
+  createFrontChannelAuthResponse,
+  completeLoginSessionHook,
+} from "../../../authentication-flows/common";
 import { logMessage } from "../../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
 
@@ -92,47 +95,50 @@ export async function impersonateScreen(
     };
   }
 
+  // Mirrors the classic /u/impersonate page: a primary "Continue" that keeps
+  // the signed-in user, and a separate box for switching to another user.
+  // Both buttons submit the same form; the handler tells them apart by the
+  // button id the widget posts (`continue` / `impersonate`).
   const components: FormNodeComponent[] = [
-    // Info text
-    {
-      id: "info",
-      type: "RICH_TEXT",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        content:
-          "<p>You have permission to impersonate other users.</p><p>Leave the field empty and click Continue to proceed as yourself, or enter a user ID to impersonate.</p>",
-      },
-      order: 0,
-    },
-    // Current user display
     {
       id: "current-user",
       type: "RICH_TEXT",
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="current-user-info"><strong>Current user:</strong> ${escapeHtml(user.email || user.user_id)}</div>`,
+        content: `<p>Current user: <strong>${escapeHtml(user.email || user.user_id)}</strong></p>`,
+      },
+      order: 0,
+    },
+    {
+      id: "continue",
+      type: "NEXT_BUTTON",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        text: "Continue",
+        skip_validation: true,
       },
       order: 1,
     },
-    // Divider
     {
       id: "divider",
       type: "DIVIDER",
       category: "BLOCK",
       visible: true,
+      config: {
+        text: "Impersonate another user",
+      },
       order: 2,
     },
-    // User ID input for impersonation
     {
       id: "user_id",
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "User ID to impersonate (optional)",
+      label: "User ID",
       config: {
-        placeholder: "Enter user ID or leave empty to continue as yourself",
+        placeholder: "Enter user ID to impersonate",
       },
       required: false,
       order: 3,
@@ -140,14 +146,14 @@ export async function impersonateScreen(
         ? [{ text: errors.user_id, type: "error" as const }]
         : undefined,
     },
-    // Submit button
     {
-      id: "submit",
+      id: "impersonate",
       type: "NEXT_BUTTON",
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Continue",
+        text: "Impersonate",
+        variant: "secondary",
       },
       order: 4,
     },
@@ -231,11 +237,27 @@ async function handleImpersonateSubmit(
     });
   }
 
-  const userIdToImpersonate = (data.user_id as string | undefined)?.trim();
+  const userIdToImpersonate =
+    typeof data.user_id === "string" ? data.user_id.trim() : "";
+  // The widget posts the clicked button's id. "Continue" always keeps the
+  // current user; otherwise a filled-in user id (Enter in the field, or the
+  // no-JS form where only the secondary button carries a name) impersonates.
+  const continueClicked = data.continue === "true";
+  const impersonateClicked = data.impersonate === "true";
 
-  // If no user_id provided, continue as current user
-  if (!userIdToImpersonate) {
-    // Continue with the normal authentication flow
+  if (impersonateClicked && !userIdToImpersonate) {
+    return {
+      error: "User ID is required",
+      screen: await impersonateScreen({
+        ...context,
+        errors: { user_id: "User ID is required" },
+      }),
+    };
+  }
+
+  if (continueClicked || !userIdToImpersonate) {
+    await completeLoginSessionHook(ctx, tenant.id, loginSession);
+
     const response = await createFrontChannelAuthResponse(ctx, {
       client,
       authParams: loginSession.authParams,
@@ -278,6 +300,13 @@ async function handleImpersonateSubmit(
     };
   }
 
+  // Point the SSO session at the impersonated user, matching /u/impersonate
+  await ctx.env.data.sessions.update(tenant.id, currentSession.id, {
+    user_id: targetUser.user_id,
+  });
+
+  await completeLoginSessionHook(ctx, tenant.id, loginSession);
+
   // Create auth response with impersonated user
   const response = await createFrontChannelAuthResponse(ctx, {
     client,
@@ -301,6 +330,7 @@ async function handleImpersonateSubmit(
     type: LogTypes.SUCCESS_IMPERSONATION,
     description: `User ${currentUser.email} impersonating ${targetUser.email || targetUser.user_id}`,
     userId: targetUser.user_id,
+    actorUserId: currentUser.user_id,
   });
 
   return { redirect: location, cookies };
