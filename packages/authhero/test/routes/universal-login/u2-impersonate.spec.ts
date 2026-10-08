@@ -13,6 +13,7 @@ const TARGET_ID = `${USERNAME_PASSWORD_PROVIDER}|target`;
 
 type TestEnv = Awaited<ReturnType<typeof getTestServer>>["env"];
 
+/** Seed the two identities and a pending impersonation page hook. */
 async function setup(env: TestEnv) {
   for (const [user_id, email] of [
     [IMPERSONATOR_ID, "admin@example.com"],
@@ -74,6 +75,7 @@ async function setup(env: TestEnv) {
   return { state: loginSession.id, sessionId: session.id };
 }
 
+/** Submit the widget's action and field payload through the screen API. */
 async function postScreen(
   u2App: Awaited<ReturnType<typeof getTestServer>>["u2App"],
   env: TestEnv,
@@ -130,6 +132,13 @@ describe("u2 impersonate screen", () => {
     expect(redirect.pathname).toBe("/callback");
     expect(redirect.searchParams.get("code")).toBeTruthy();
 
+    const code = await env.data.codes.get(
+      "tenantId",
+      redirect.searchParams.get("code")!,
+      "authorization_code",
+    );
+    expect(code?.user_id).toBe(IMPERSONATOR_ID);
+
     const session = await env.data.sessions.get("tenantId", sessionId);
     expect(session?.user_id).toBe(IMPERSONATOR_ID);
 
@@ -138,7 +147,7 @@ describe("u2 impersonate screen", () => {
   });
 
   it("impersonates the entered user", async () => {
-    const { u2App, env } = await getTestServer();
+    const { u2App, env } = await getTestServer({ outbox: true });
     const { state, sessionId } = await setup(env);
 
     const response = await postScreen(u2App, env, state, {
@@ -151,6 +160,13 @@ describe("u2 impersonate screen", () => {
     const redirect = new URL(body.redirect);
     expect(redirect.searchParams.get("code")).toBeTruthy();
 
+    const code = await env.data.codes.get(
+      "tenantId",
+      redirect.searchParams.get("code")!,
+      "authorization_code",
+    );
+    expect(code?.user_id).toBe(TARGET_ID);
+
     const session = await env.data.sessions.get("tenantId", sessionId);
     expect(session?.user_id).toBe(TARGET_ID);
 
@@ -160,6 +176,35 @@ describe("u2 impersonate screen", () => {
     const { logs } = await env.data.logs.list("tenantId");
     const log = logs.find((l) => l.type === LogTypes.SUCCESS_IMPERSONATION);
     expect(log?.user_id).toBe(TARGET_ID);
+    expect(log).toBeDefined();
+    const [event] = await env.data.outbox!.getByIds([log!.log_id]);
+    expect(event.actor.id).toBe(IMPERSONATOR_ID);
+  });
+
+  it("preserves the SSO identity when authorization rejects the scopes", async () => {
+    const { u2App, env } = await getTestServer();
+    const { state, sessionId } = await setup(env);
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    await env.data.loginSessions.update("tenantId", state, {
+      authParams: {
+        ...loginSession!.authParams,
+        scope: "openid unauthorized:scope",
+        audience: "https://unregistered-api.example.com/",
+      },
+    });
+
+    const response = await postScreen(u2App, env, state, {
+      impersonate: "true",
+      user_id: TARGET_ID,
+    });
+
+    expect(response.status).toBe(403);
+    const session = await env.data.sessions.get("tenantId", sessionId);
+    expect(session?.user_id).toBe(IMPERSONATOR_ID);
+    const { logs } = await env.data.logs.list("tenantId");
+    expect(
+      logs.some((log) => log.type === LogTypes.SUCCESS_IMPERSONATION),
+    ).toBe(false);
   });
 
   it("requires a user id when the impersonate button is clicked", async () => {

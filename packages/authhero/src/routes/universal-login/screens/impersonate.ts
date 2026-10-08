@@ -300,11 +300,6 @@ async function handleImpersonateSubmit(
     };
   }
 
-  // Point the SSO session at the impersonated user, matching /u/impersonate
-  await ctx.env.data.sessions.update(tenant.id, currentSession.id, {
-    user_id: targetUser.user_id,
-  });
-
   await completeLoginSessionHook(ctx, tenant.id, loginSession);
 
   // Create auth response with impersonated user
@@ -325,12 +320,20 @@ async function handleImpersonateSubmit(
     throw new HTTPException(500, { message: "Failed to generate redirect" });
   }
 
+  // Switch identity only after authorization succeeds, so rejected scopes or
+  // failures generating the response leave the original SSO identity intact.
+  await ctx.env.data.sessions.update(tenant.id, currentSession.id, {
+    user_id: targetUser.user_id,
+  });
+
   // Log successful impersonation after auth response is confirmed
   logMessage(ctx, tenant.id, {
     type: LogTypes.SUCCESS_IMPERSONATION,
     description: `User ${currentUser.email} impersonating ${targetUser.email || targetUser.user_id}`,
     userId: targetUser.user_id,
     actorUserId: currentUser.user_id,
+    targetType: "user",
+    targetId: targetUser.user_id,
   });
 
   return { redirect: location, cookies };
