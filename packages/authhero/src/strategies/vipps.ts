@@ -105,5 +105,15 @@ export async function validateAuthorizationCodeAndGetUser(
 
   const userInfo = await userInfoResponse.json();
 
+  if (typeof userInfo?.phone_number === "string") {
+    userInfo.phone_number = normalizeVippsPhoneNumber(userInfo.phone_number);
+  }
+
   return userInfo;
+}
+
+// Vipps returns the MSISDN with the country code but without the leading "+"
+// (e.g. "4791234567"). The OIDC phone_number claim is E.164, so add it.
+export function normalizeVippsPhoneNumber(phoneNumber: string): string {
+  return /^\d+$/.test(phoneNumber) ? `+${phoneNumber}` : phoneNumber;
 }
