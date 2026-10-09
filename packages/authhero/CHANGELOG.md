@@ -1,5 +1,19 @@
 # authhero
 
+## 9.22.0
+
+### Minor Changes
+
+- 7fe898e: Fix `initMultiTenant` never running its protection of synced entities. It registered the guard on the app after `init()` had mounted the management routes, so Hono never ran it. Child tenants could modify or delete roles and connections synced from the control plane. Resource servers were unaffected, because they have their own check.
+
+  `init()` gains a `managementApiMiddleware` option. It runs inside the management API after authentication and tenant resolution, and before the route handlers. `initMultiTenant` now installs the guard through it. If you set up multi-tenancy by hand with `app.use("/api/v2/*", createProtectSyncedMiddleware())`, that call never ran. Pass the middleware as `init({ managementApiMiddleware: [createProtectSyncedMiddleware()] })` instead.
+
+### Patch Changes
+
+- 20528c7: Render a branded error page instead of a bare "Invalid redirect uri" text response when `/v2/logout` `returnTo` or `/oidc/logout` `post_logout_redirect_uri` isn't in the client's Allowed Logout URLs.
+- ee38a67: Promote the remaining OIDC standard claims (`address`, `birthdate`, `locale`, `zoneinfo`, `middle_name`, `gender`, `website`, `profile`) from a social/enterprise IdP profile to the user's root attributes, following the connection's `set_user_root_attributes` mode. Previously they were only kept in `profileData`, so the `address` and `profile` scopes returned nothing for these users. Vipps phone numbers are now stored in E.164 format (`+47…`).
+- 5a1a8f3: Bring the u2 impersonation screen in line with the classic `/u/impersonate` page: a primary "Continue" button plus a separate "Impersonate another user" box. Submitting now completes the page hook, points the SSO session at the impersonated user and records the impersonator on the log entry.
+
 ## 9.21.0
 
 ### Minor Changes
