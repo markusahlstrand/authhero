@@ -521,7 +521,12 @@ This is an AuthHero extension and is not present in Auth0.
 
 The effect is that Auth0-issued access tokens cannot be presented back to Auth0's `/oauth/token` for any kind of downscoping, audience switching, or organization switching. There is no built-in path to mint a derived Auth0 token from an existing Auth0 token.
 
-**AuthHero Behavior**: AuthHero implements the token-exchange grant for a single concrete use case — exchanging a self-issued access token for one scoped to a different organization (and optionally a narrower scope set). It **accepts the standard `urn:ietf:params:oauth:token-type:access_token` subject token type**, which Auth0 does not.
+**AuthHero Behavior**: AuthHero implements two token-exchange flows, selected by `subject_token_type`:
+
+- **[Custom Token Exchange](/features/custom-token-exchange)** is compatible with Auth0's. It uses tenant-defined `subject_token_type` profiles and `custom-token-exchange` actions, with the same reserved namespaces. AuthHero adds a declarative **Verify JWT** mode, so a profile can verify a JWT signed by your backend against a JWKS without writing an action.
+- **Organization switching** exchanges a self-issued access token for one scoped to a different organization, optionally with a narrower scope set. It **accepts the standard `urn:ietf:params:oauth:token-type:access_token` subject token type**, which Auth0 does not.
+
+Organization switching looks like this:
 
 ```http
 POST /oauth/token
@@ -540,10 +545,10 @@ The new token records the exchanging client in the RFC 8693 `act` claim (`{ sub,
 **Why the difference?**
 
 - **Different scope of risk.** Auth0 blocks standard token types because they host arbitrary tenants and can't make assumptions about what a token means across them — letting customer code accept "any Auth0 access token" would create a privilege-escalation primitive. AuthHero only ever issues tokens for its own tenants and applies a fixed set of checks (issuer match, no chained `act`, member-of-target-org, downscope-only), so accepting its own access tokens as subject tokens is safe.
-- **Different primary use case.** Auth0's Custom Token Exchange exists to migrate users off legacy IdPs (foreign token in → Auth0 token out). AuthHero's exchange exists to switch organization context within one IdP (own token in → own token out with different `org_id`). Each tool solves what its host customers actually need.
-- **Multi-step safety net.** The exchange is opt-in at three layers — the exchanging client must authenticate as confidential, must have `organization_usage` ≠ `deny` (the default for new and DCR'd clients), and must list the grant in its `grant_types`. A misconfigured tenant cannot accidentally enable the exchange for every client.
+- **An extra use case.** Custom Token Exchange covers foreign tokens (foreign token in → AuthHero token out), as on Auth0. Organization switching adds a use case Auth0 has no path for: switching organization context within one IdP (own token in → own token out with a different `org_id`).
+- **Multi-step safety net.** Organization switching is opt-in at three layers — the exchanging client must authenticate as confidential, must have `organization_usage` ≠ `deny` (the default for new and DCR'd clients), and must list the grant in its `grant_types`. A misconfigured tenant cannot accidentally enable the exchange for every client.
 
-**What's not implemented vs. RFC 8693**: Foreign `subject_token_type` values, `actor_token`, `requested_token_type`, RFC 8707 resource indicators, and chained re-exchange are all omitted. These will be added if a real use case appears; for now the surface stays small. See [RFC 8693 — Token Exchange](/standards/rfc-8693) for full details.
+**What's not implemented vs. RFC 8693**: Standard `subject_token_type` values other than `access_token`, `actor_token`, `requested_token_type`, RFC 8707 resource indicators, and chained re-exchange are all omitted. Native-to-web SSO (`session_transfer_token`) and Token Vault are not implemented either. These will be added if a real use case appears; for now the surface stays small. See [RFC 8693 — Token Exchange](/standards/rfc-8693) for full details.
 
 ### Custom Domain Certificate Upload
 
