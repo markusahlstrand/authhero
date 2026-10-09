@@ -57,6 +57,35 @@ export const mockStrategy: Strategy = {
           picture: "https://example.com/new-avatar.jpg",
           nickname: "updateduser",
         };
+      // Optional OIDC Core 5.1 claims, including an IdP-specific address
+      // member and values that must not reach the root (over-long gender,
+      // malformed birthdate).
+      case "oidc-claims-user@example.com":
+        return {
+          sub: "oidc-789",
+          email: "oidc-claims-user@example.com",
+          middle_name: "Mid",
+          profile: "https://example.com/profile",
+          website: "https://example.com",
+          birthdate: "1990-04-01",
+          zoneinfo: "Europe/Oslo",
+          locale: "nb-NO",
+          address: {
+            street_address: "Storgata 1",
+            postal_code: "0155",
+            region: "OSLO",
+            country: "NO",
+            address_type: "home",
+          },
+        };
+      case "oidc-claims-invalid@example.com":
+        return {
+          sub: "oidc-790",
+          email: "oidc-claims-invalid@example.com",
+          gender: "x".repeat(51),
+          birthdate: "01/04/1990",
+          address: { address_type: "home" },
+        };
       default:
         return {
           sub: "123",

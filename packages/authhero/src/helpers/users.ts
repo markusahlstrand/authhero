@@ -1,4 +1,5 @@
 import {
+  Address,
   User,
   UserDataAdapter,
   escapeLuceneValue,
@@ -683,6 +684,72 @@ interface RootAttributes {
   email_verified?: boolean;
   phone_number?: string;
   phone_verified?: boolean;
+  middle_name?: string;
+  profile?: string;
+  website?: string;
+  gender?: string;
+  birthdate?: string;
+  zoneinfo?: string;
+  locale?: string;
+  address?: Address;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Optional OIDC Core 5.1 claims promoted to the root when the IdP sends them,
+// each capped at the narrowest column that stores it (the kysely/PlanetScale
+// users table). An over-long value is dropped rather than truncated so a
+// malformed upstream claim can't fail the user write mid-login; the raw value
+// is still kept in profileData.
+const OPTIONAL_STRING_CLAIMS: ReadonlyArray<
+  readonly [
+    "middle_name" | "gender" | "zoneinfo" | "locale" | "profile" | "website",
+    number,
+  ]
+> = [
+  ["middle_name", 100],
+  ["gender", 50],
+  ["zoneinfo", 100],
+  ["locale", 64],
+  ["profile", 2048],
+  ["website", 2048],
+];
+
+// OIDC Core 5.1: YYYY, or YYYY-MM-DD where a withheld year is 0000.
+const BIRTHDATE_PATTERN = /^\d{4}(-\d{2}-\d{2})?$/;
+
+const ADDRESS_KEYS = [
+  "formatted",
+  "street_address",
+  "locality",
+  "region",
+  "postal_code",
+  "country",
+] as const;
+
+// Keeps only the OIDC Core 5.1.1 address members — IdPs add their own (e.g.
+// Vipps' `address_type`), which the root address schema doesn't carry.
+function extractAddress(value: unknown): Address | undefined {
+  if (!isRecord(value)) return undefined;
+  const address: NonNullable<Address> = {};
+  for (const key of ADDRESS_KEYS) {
+    const member = value[key];
+    if (typeof member === "string" && member) address[key] = member;
+  }
+  return Object.keys(address).length > 0 ? address : undefined;
+}
+
+// Root attributes are scalars except `address`, which comes back from the
+// adapter as a fresh object — compare it by value so an unchanged address
+// doesn't force a write on every login.
+function isSameValue(a: unknown, b: unknown): boolean {
+  if (isRecord(a) && isRecord(b)) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every((key) => isSameValue(a[key], b[key]));
+  }
+  return a === b;
 }
 
 function extractRootAttributesFromProfile(
@@ -709,6 +776,21 @@ function extractRootAttributesFromProfile(
   } else if (typeof profileData.phone_verified === "boolean") {
     attrs.phone_verified = profileData.phone_verified;
   }
+
+  for (const [claim, maxLength] of OPTIONAL_STRING_CLAIMS) {
+    const value = profileData[claim];
+    if (typeof value === "string" && value && value.length <= maxLength) {
+      attrs[claim] = value;
+    }
+  }
+  if (
+    typeof profileData.birthdate === "string" &&
+    BIRTHDATE_PATTERN.test(profileData.birthdate)
+  ) {
+    attrs.birthdate = profileData.birthdate;
+  }
+  const address = extractAddress(profileData.address);
+  if (address) attrs.address = address;
 
   return attrs;
 }
@@ -789,6 +871,14 @@ export async function getOrCreateUserByProvider(
       nickname: rootAttrs.nickname,
       picture: rootAttrs.picture,
       phone_verified: rootAttrs.phone_verified,
+      middle_name: rootAttrs.middle_name,
+      profile: rootAttrs.profile,
+      website: rootAttrs.website,
+      gender: rootAttrs.gender,
+      birthdate: rootAttrs.birthdate,
+      zoneinfo: rootAttrs.zoneinfo,
+      locale: rootAttrs.locale,
+      address: rootAttrs.address,
       provider,
       connection,
       email_verified:
@@ -838,7 +928,8 @@ export async function getOrCreateUserByProvider(
     const currentUser: Record<string, unknown> = { ...user };
     const changedUpdates = Object.fromEntries(
       Object.entries(updates).filter(
-        ([key, value]) => value !== undefined && currentUser[key] !== value,
+        ([key, value]) =>
+          value !== undefined && !isSameValue(currentUser[key], value),
       ),
     );
     if (Object.keys(changedUpdates).length > 0) {

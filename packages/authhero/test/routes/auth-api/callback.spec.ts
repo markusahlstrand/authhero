@@ -763,6 +763,109 @@ describe("callback", () => {
     expect(user!.email_verified).toEqual(true);
   });
 
+  describe("optional OIDC profile claims", () => {
+    async function setup() {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+      await env.data.connections.create("tenantId", {
+        id: "connectionId",
+        name: "mock-strategy",
+        strategy: "mock-strategy",
+        options: { client_id: "clientId", client_secret: "clientSecret" },
+      });
+
+      async function login(code: string) {
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+          },
+        });
+        const state = await env.data.codes.create("tenantId", {
+          code_id: nanoid(),
+          code_type: "oauth2_state",
+          login_id: loginSession.id,
+          connection_id: "connectionId",
+          code_verifier: "verifier",
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        });
+        const response = await oauthClient.callback.$get({
+          query: { state: state.code_id, code },
+        });
+        expect(response.status).toEqual(302);
+      }
+
+      return { env, login };
+    }
+
+    it("promotes the optional claims to the root, keeping only OIDC address members", async () => {
+      const { env, login } = await setup();
+
+      await login("oidc-claims-user@example.com");
+
+      const user = await env.data.users.get(
+        "tenantId",
+        "mock-strategy|oidc-789",
+      );
+      expect(user).toMatchObject({
+        middle_name: "Mid",
+        profile: "https://example.com/profile",
+        website: "https://example.com",
+        birthdate: "1990-04-01",
+        zoneinfo: "Europe/Oslo",
+        locale: "nb-NO",
+      });
+      expect(user!.address).toEqual({
+        street_address: "Storgata 1",
+        postal_code: "0155",
+        region: "OSLO",
+        country: "NO",
+      });
+      // The raw upstream address, including IdP-specific members, stays in
+      // profileData.
+      expect(JSON.parse(user!.profileData!).address.address_type).toEqual(
+        "home",
+      );
+    });
+
+    it("drops values that don't fit the root schema", async () => {
+      const { env, login } = await setup();
+
+      await login("oidc-claims-invalid@example.com");
+
+      const user = await env.data.users.get(
+        "tenantId",
+        "mock-strategy|oidc-790",
+      );
+      expect(user).toBeTruthy();
+      expect(user!.gender).toBeUndefined();
+      expect(user!.birthdate).toBeUndefined();
+      expect(user!.address).toBeUndefined();
+    });
+
+    it("does not rewrite an unchanged address on subsequent logins", async () => {
+      const { env, login } = await setup();
+
+      await login("oidc-claims-user@example.com");
+      const before = await env.data.users.get(
+        "tenantId",
+        "mock-strategy|oidc-789",
+      );
+
+      // Make sure a write on the second login would get a later updated_at.
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await login("oidc-claims-user@example.com");
+
+      const after = await env.data.users.get(
+        "tenantId",
+        "mock-strategy|oidc-789",
+      );
+      expect(after!.updated_at).toEqual(before!.updated_at);
+    });
+  });
+
   it("should link social user to primary via setLinkedTo in pre-user-registration hook", async () => {
     const { oauthApp, env } = await getTestServer({
       hooks: {
