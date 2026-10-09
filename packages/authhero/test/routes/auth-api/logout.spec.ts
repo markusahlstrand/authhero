@@ -54,7 +54,7 @@ describe("logout", () => {
     expect(body).toBe("OK");
   });
 
-  it("should return a 400 OK if the callback isn't allowed", async () => {
+  it("should render a branded error page if the callback isn't allowed", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
@@ -66,8 +66,11 @@ describe("logout", () => {
     });
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.headers.get("set-cookie")).toBeNull();
     const body = await response.text();
-    expect(body).toBe("Invalid redirect uri");
+    expect(body).toContain("couldn&#39;t sign you out");
+    expect(body).toContain("(example)");
   });
 
   it("should clear a remove session from the database and create a log message", async () => {

@@ -1,5 +1,4 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
-import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
@@ -11,6 +10,7 @@ import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 import { defineRoute } from "../../utils/define-route";
+import { renderInvalidLogoutUrlPage } from "../universal-login/branded-error-response";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["oauth2"],
@@ -28,6 +28,9 @@ const getRoot = defineRoute({
     responses: {
       302: {
         description: "Log the user out",
+      },
+      400: {
+        description: "returnTo is not an allowed logout URL",
       },
     },
   }),
@@ -75,9 +78,7 @@ const getRoot = defineRoute({
         type: LogTypes.FAILED_LOGOUT,
         description: "Invalid redirect uri",
       });
-      throw new HTTPException(400, {
-        message: "Invalid redirect uri",
-      });
+      return renderInvalidLogoutUrlPage(ctx, client.tenant.id, redirectUri);
     }
 
     const cookie = ctx.req.header("cookie");

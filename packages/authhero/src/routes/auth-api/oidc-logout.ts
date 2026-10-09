@@ -11,6 +11,7 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { validateJwtToken } from "../../utils/jwt";
 import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 
+import { renderInvalidLogoutUrlPage } from "../universal-login/branded-error-response";
 import { defineRoute } from "../../utils/define-route";
 // OIDC RP-Initiated Logout 1.0
 // https://openid.net/specs/openid-connect-rpinitiated-1_0.html
@@ -140,9 +141,11 @@ const getRoot = defineRoute({
           type: LogTypes.FAILED_LOGOUT,
           description: "Invalid post_logout_redirect_uri",
         });
-        throw new HTTPException(400, {
-          message: "Invalid post_logout_redirect_uri",
-        });
+        return renderInvalidLogoutUrlPage(
+          ctx,
+          client.tenant.id,
+          post_logout_redirect_uri,
+        );
       } else {
         // No way to validate — refuse to redirect. Continue to clear cookies.
         throw new HTTPException(400, {

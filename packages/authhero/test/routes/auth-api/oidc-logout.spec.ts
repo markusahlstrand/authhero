@@ -66,6 +66,9 @@ describe("/oidc/logout", () => {
     const response = await oauthApp.request(url, { method: "GET" }, env);
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.headers.get("location")).toBeNull();
+    expect(await response.text()).toContain("attacker.example");
   });
 
   it("rejects an id_token_hint with an invalid signature", async () => {
