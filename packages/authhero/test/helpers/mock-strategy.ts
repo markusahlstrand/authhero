@@ -86,6 +86,18 @@ export const mockStrategy: Strategy = {
           birthdate: "01/04/1990",
           address: { address_type: "home" },
         };
+      case "birthdate-impossible@example.com":
+        return {
+          sub: "birthdate-1",
+          email: "birthdate-impossible@example.com",
+          birthdate: "1990-02-30",
+        };
+      case "birthdate-withheld-year@example.com":
+        return {
+          sub: "birthdate-2",
+          email: "birthdate-withheld-year@example.com",
+          birthdate: "0000-02-29",
+        };
       default:
         return {
           sub: "123",

@@ -845,6 +845,30 @@ describe("callback", () => {
       expect(user!.address).toBeUndefined();
     });
 
+    it.each([
+      [
+        "birthdate-impossible@example.com",
+        "mock-strategy|birthdate-1",
+        undefined,
+      ],
+      [
+        "birthdate-withheld-year@example.com",
+        "mock-strategy|birthdate-2",
+        "0000-02-29",
+      ],
+    ])(
+      "validates the birthdate as a calendar date (%s)",
+      async (code, userId, expected) => {
+        const { env, login } = await setup();
+
+        await login(code);
+
+        const user = await env.data.users.get("tenantId", userId);
+        expect(user).toBeTruthy();
+        expect(user!.birthdate).toEqual(expected);
+      },
+    );
+
     it("does not rewrite an unchanged address on subsequent logins", async () => {
       const { env, login } = await setup();
 

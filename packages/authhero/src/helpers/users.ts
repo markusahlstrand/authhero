@@ -720,6 +720,21 @@ const OPTIONAL_STRING_CLAIMS: ReadonlyArray<
 // OIDC Core 5.1: YYYY, or YYYY-MM-DD where a withheld year is 0000.
 const BIRTHDATE_PATTERN = /^\d{4}(-\d{2}-\d{2})?$/;
 
+function isValidBirthdate(value: string): boolean {
+  if (!BIRTHDATE_PATTERN.test(value)) return false;
+  if (value.length === 4) return true;
+  // A withheld year (0000) is checked against a leap year so 0000-02-29 passes.
+  const year = Number(value.slice(0, 4)) || 2000;
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  if (month < 1 || month > 12 || day < 1) return false;
+  // Day 0 of the next month is the last day of this one. setUTCFullYear,
+  // unlike Date.UTC, doesn't map years 0-99 onto 1900-1999.
+  const lastDay = new Date(0);
+  lastDay.setUTCFullYear(year, month, 0);
+  return day <= lastDay.getUTCDate();
+}
+
 const ADDRESS_KEYS = [
   "formatted",
   "street_address",
@@ -785,7 +800,7 @@ function extractRootAttributesFromProfile(
   }
   if (
     typeof profileData.birthdate === "string" &&
-    BIRTHDATE_PATTERN.test(profileData.birthdate)
+    isValidBirthdate(profileData.birthdate)
   ) {
     attrs.birthdate = profileData.birthdate;
   }
