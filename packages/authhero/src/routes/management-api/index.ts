@@ -555,6 +555,13 @@ export default function create(config: AuthHeroConfig) {
       return next();
     });
 
+  // Consumer guards (see AuthHeroConfig.managementApiMiddleware). Registered
+  // after auth so they see the resolved tenant and user, and before the
+  // routes below so Hono actually runs them.
+  for (const middleware of config.managementApiMiddleware ?? []) {
+    app.use(middleware);
+  }
+
   // Collect extension paths to avoid mounting core routes that would conflict
   const extensionPaths = new Set(
     config.managementApiExtensions?.map((e) => e.path) || [],

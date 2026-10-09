@@ -153,15 +153,16 @@ const tenantsRouter = createTenantsOpenAPIRouter(
   { tenants: tenantHooks },
 );
 
-// Initialize AuthHero with sync hooks and tenant routes
+// Initialize AuthHero with sync hooks, tenant routes and the guard that
+// protects synced entities. The guard must be passed to init() rather than
+// added with app.use() afterwards: by then the management routes are mounted
+// and Hono would never run it.
 const { app } = init({
   dataAdapter,
   entityHooks,
   managementApiExtensions: [{ path: "/tenants", router: tenantsRouter }],
+  managementApiMiddleware: [createProtectSyncedMiddleware()],
 });
-
-// Add middleware to protect synced entities
-app.use("/api/v2/*", createProtectSyncedMiddleware());
 
 export default app;
 ```

@@ -521,10 +521,13 @@ function createProtectSyncedMiddleware(): MiddlewareHandler;
 **Example:**
 
 ```typescript
-const protect = createProtectSyncedMiddleware();
-
-app.use("/api/v2/*", protect);
+const { app } = init({
+  dataAdapter,
+  managementApiMiddleware: [createProtectSyncedMiddleware()],
+});
 ```
+
+Pass it through `managementApiMiddleware` so it runs inside the management API after authentication. Adding it with `app.use()` on the app returned by `init()` has no effect, because the management routes are already mounted. `initMultiTenant` installs it automatically when sync is enabled.
 
 ## Adapter Functions
 

@@ -222,16 +222,23 @@ const multiTenancy = setupMultiTenancy({
 
 System entities synced from the control plane are protected from modification on child tenants:
 
+`initMultiTenant` installs this guard for you when sync is enabled. With a manual setup, pass it to `init()`:
+
 ```typescript
+import { init } from "authhero";
 import { createProtectSyncedMiddleware } from "@authhero/multi-tenancy";
 
-// Apply middleware to management API
-app.use("/api/v2/*", createProtectSyncedMiddleware());
+const { app } = init({
+  dataAdapter,
+  managementApiMiddleware: [createProtectSyncedMiddleware()],
+});
 
 // Now attempts to modify synced entities will return 403
-// PATCH /api/v2/resource-servers/:id (where is_system: true)
-// Response: 403 "This resource server is a system resource and cannot be modified"
+// PATCH /api/v2/roles/:id (where is_system: true)
+// Response: 403 "This role is a system resource and cannot be modified"
 ```
+
+`managementApiMiddleware` runs inside the management API, after authentication and before the route handlers. Don't add the guard with `app.use("/api/v2/*", …)` on the app that `init()` returns. The management routes are already mounted at that point, and Hono never runs middleware registered after the handler that answers. The guard would never run, and synced roles and connections would be writable.
 
 ## Organizations: Control Plane vs Child Tenants
 
@@ -930,12 +937,15 @@ This ensures tokens contain `org_name` which directly maps to tenant IDs, avoidi
 
 ### 2. Protect System Entities
 
-Always use the protect synced middleware:
+Always run the protect synced middleware. `initMultiTenant` does this when sync is enabled. With a manual setup, pass it to `init()` (not `app.use()` afterwards, see [Protected Entities Middleware](#protected-entities-middleware)):
 
 ```typescript
 import { createProtectSyncedMiddleware } from "@authhero/multi-tenancy";
 
-app.use("/api/v2/*", createProtectSyncedMiddleware());
+const { app } = init({
+  dataAdapter,
+  managementApiMiddleware: [createProtectSyncedMiddleware()],
+});
 ```
 
 ### 3. Centralize Entity Management
